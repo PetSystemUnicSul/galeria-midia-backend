@@ -41,6 +41,9 @@ app.use(cors({
     return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  // Precisamos permitir explicitamente estes cabeçalhos
+  // para que o "preflight" (OPTIONS) do Axios (POST) funcione.
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Habilita o parsing de JSON
