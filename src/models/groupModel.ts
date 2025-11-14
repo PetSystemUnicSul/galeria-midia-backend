@@ -35,20 +35,50 @@ export const createGroup = async (name: string, ownerId: string) => {
 
 /**
  * Busca todos os grupos pertencentes a um usuário.
+ * ATUALIZADO: Agora também conta (COUNT) quantas mídias
+ * existem em cada grupo.
  * @param ownerId O ID do usuário logado.
  */
 export const getGroupsByOwner = async (ownerId: string) => {
+  // Usamos o select avançado do Supabase para buscar os grupos
+  // e, ao mesmo tempo, fazer uma sub-consulta para contar
+  // as mídias associadas.
   const { data, error } = await supabase
     .from('groups')
-    .select('id, name, share_code, created_at') // Seleciona os campos
+    .select(`
+      id, 
+      name, 
+      share_code, 
+      created_at,
+      media ( count ) 
+    `)
     .eq('owner_id', ownerId) // Onde o dono é o usuário
     .order('created_at', { ascending: false }); // Mais recentes primeiro
 
   if (error) {
-    console.error('Error fetching groups:', error.message);
+    console.error('Error fetching groups with media count:', error.message);
     throw new Error(error.message);
   }
-  return data;
+
+  // O Supabase retorna a contagem de forma um pouco estranha, 
+  // como um array (ex: [ { count: 4 } ]).
+  // Vamos "achatar" isso para facilitar o frontend.
+  const formattedData = data.map(group => {
+    // @ts-ignore
+    const mediaCount = group.media[0]?.count || 0;
+
+    // Remove o objeto 'media' complexo
+    // @ts-ignore
+    delete group.media; 
+
+    // Adiciona a contagem simples
+    return {
+      ...group,
+      media_count: mediaCount, // <-- O novo campo que o frontend usará
+    };
+  });
+
+  return formattedData;
 };
 
 /**
